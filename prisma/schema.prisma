@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String              @id @default(cuid())
+  name        String
+  email       String              @unique
+  role        String              // ADMIN | COUNSELOR | CASE_OFFICER
+  title       String
+  phone       String?
+  avatarColor String              @default("#2563eb")
+  createdAt   DateTime            @default(now())
+  assignments StudentAssignment[]
+  notes       ActivityNote[]
+}
+
+model Student {
+  id                 String                 @id @default(cuid())
+  code               String                 @unique
+  fullName           String
+  gender             String                 @default("Nữ")
+  dob                String
+  email              String
+  phone              String
+  address            String?
+  passportNumber     String?
+  passportExpiry     String?
+  parentName         String?
+  parentPhone        String?
+  parentOccupation   String?
+  currentSchool      String
+  currentGrade       String
+  gpa                Float
+  gpaScale           String                 @default("10.0")
+  englishTestType    String                 @default("IELTS")
+  englishScore       String
+  standardizedTests  String?                // SAT, ACT, AP, IB, TOPIK, JLPT...
+  targetCountries    String                 // Comma-separated e.g. "Mỹ, Canada, Úc"
+  targetIntake       String                 // e.g. "Fall 2027"
+  targetDegree       String                 @default("Cử nhân (Bachelor)")
+  targetMajors       String
+  careerOrientation  String                 // Định hướng ngành nghề chi tiết
+  skillsAndInterests String                 // Kỹ năng, sở thích, năng lực cá nhân
+  strengthsSummary   String?                // Điểm mạnh nổi bật / Personal brand
+  annualBudget       String                 // Ngân sách gia đình / năm
+  savingsAmount      String                 // Sổ tiết kiệm chứng minh
+  parentsIncome      String                 // Thu nhập bố mẹ / người bảo lãnh
+  assetsInfo         String?                // Tài sản đảm bảo (BĐS, Doanh nghiệp...)
+  scholarshipTarget  String                 // Mức học bổng / Financial Aid mục tiêu
+  pipelineStage      String                 @default("PREPARING") // PREPARING | SUBMITTED | VISA_PROCESSING | COMPLETED
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  assignments        StudentAssignment[]
+  academics          AcademicRecord[]
+  extracurriculars   Extracurricular[]
+  awards             Award[]
+  applications       Application[]
+  essays             Essay[]
+  recommendations    RecommendationLetter[]
+  documents          StudentDocument[]
+  roadmapTasks       RoadmapTask[]
+  activityNotes      ActivityNote[]
+}
+
+model StudentAssignment {
+  id         String   @id @default(cuid())
+  studentId  String
+  userId     String
+  roleLabel  String   @default("Phụ trách") // Tư vấn chính, Xử lý hồ sơ, Cố vấn luận...
+  assignedAt DateTime @default(now())
+
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, userId])
+}
+
+model AcademicRecord {
+  id          String  @id @default(cuid())
+  studentId   String
+  levelName   String  // Lớp 10, Lớp 11, Lớp 12, SAT, IELTS, AP Calculus BC...
+  institution String
+  year        String
+  scoreDetail String  // GPA 9.4/10, 1540/1600, 8.0 Overall...
+  notes       String?
+
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Extracurricular {
+  id           String  @id @default(cuid())
+  studentId    String
+  title        String  // Tên hoạt động / dự án / CLB
+  organization String
+  role         String  // Chủ tịch, Founder, Trưởng ban...
+  category     String  // Lãnh đạo, Nghiên cứu, Tình nguyện, Nghệ thuật/Thể thao, Thực tập
+  duration     String  // 09/2024 - Hiện tại (6 giờ/tuần)
+  description  String  // Mô tả công việc & tác động định lượng
+  proofUrl     String? // Link minh chứng / Google Drive
+
+  student      Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Award {
+  id          String  @id @default(cuid())
+  studentId   String
+  title       String  // Tên giải thưởng / thành tích
+  level       String  // Quốc tế | Quốc gia | Tỉnh/Thành phố | Trường
+  issuer      String  // Đơn vị cấp
+  year        String
+  description String?
+  proofUrl    String?
+
+  student     Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model School {
+  id                  String        @id @default(cuid())
+  name                String
+  country             String
+  city                String?
+  ranking             String?
+  tuitionRange        String?
+  defaultRequirements String?
+  website             String?
+  applications        Application[]
+}
+
+model Application {
+  id                String   @id @default(cuid())
+  studentId         String
+  schoolId          String
+  major             String
+  degreeLevel       String   @default("Cử nhân")
+  intake            String
+  category          String   @default("MATCH") // REACH | MATCH | SAFETY
+  status            String   @default("PREPARING") // PREPARING | SUBMITTED | OFFER_RECEIVED | VISA_PROCESSING | COMPLETED | REJECTED
+  deadline          String?
+  scholarshipResult String?  // VD: Học bổng $25,000/năm
+  notes             String?
+  updatedAt         DateTime @updatedAt
+
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  school            School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+}
+
+model Essay {
+  id              String   @id @default(cuid())
+  studentId       String
+  title           String   // Chủ đề bài luận
+  essayType       String   // Personal Statement | Supplemental Essay | Statement of Purpose | Study Plan
+  targetSchool    String?  // Common App hoặc Tên trường cụ thể
+  wordCountTarget Int      @default(650)
+  status          String   @default("DRAFTING") // IDEA | DRAFTING | REVIEWING | FINAL
+  externalUrl     String?  // Link Google Docs
+  fileUrl         String?  // File đã upload
+  fileName        String?
+  feedback        String?  // Nhận xét của cố vấn
+  updatedAt       DateTime @updatedAt
+
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model RecommendationLetter {
+  id               String  @id @default(cuid())
+  studentId        String
+  recommenderName  String
+  recommenderTitle String  // Giáo viên Toán, Hiệu trưởng, Quản lý dự án...
+  recommenderEmail String?
+  relationship     String
+  status           String  @default("REQUESTED") // REQUESTED | DRAFTING | SUBMITTED
+  externalUrl      String?
+  fileUrl          String?
+  fileName         String?
+  notes            String?
+
+  student          Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model StudentDocument {
+  id           String   @id @default(cuid())
+  studentId    String
+  name         String
+  category     String   // Cá nhân | Học thuật | Ngoại khóa & Giải thưởng | Tài chính | Visa
+  country      String?  // Áp dụng cho quốc gia nào
+  status       String   @default("MISSING") // MISSING | PENDING_REVIEW | APPROVED | NEEDS_REVISION
+  fileUrl      String?  // Đường dẫn file tải trực tiếp
+  fileName     String?
+  externalUrl  String?  // Đường dẫn Google Drive / OneDrive
+  reviewerNote String?
+  updatedAt    DateTime @updatedAt
+
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model RoadmapTask {
+  id           String  @id @default(cuid())
+  studentId    String
+  title        String
+  category     String  // Học thuật | Ngoại khóa | Bài luận | Hồ sơ trường | Tài chính & Visa
+  dueDate      String
+  priority     String  @default("HIGH") // HIGH | MEDIUM | LOW
+  completed    Boolean @default(false)
+  assigneeName String?
+
+  student      Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model ActivityNote {
+  id         String   @id @default(cuid())
+  studentId  String
+  userId     String?
+  authorName String
+  authorRole String
+  content    String
+  noteType   String   @default("COMMENT") // COMMENT | STATUS_CHANGE | DOCUMENT_UPDATE
+  createdAt  DateTime @default(now())
+
+  student    Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model CountryTemplate {
+  id           String  @id @default(cuid())
+  country      String
+  documentName String
+  category     String  // Cá nhân | Học thuật | Ngoại khóa & Giải thưởng | Tài chính | Visa
+  required     Boolean @default(true)
+  description  String?
+}
